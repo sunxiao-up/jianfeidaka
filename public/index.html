@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>减肥打卡</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">减肥打卡</h1>
+    <p class="header__subtitle">坚持记录，遇见更好的自己</p>
+  </header>
+
+  <main class="main">
+    <section class="stats" aria-label="数据统计">
+      <article class="stat-card">
+        <p class="stat-card__label">当前体重</p>
+        <p class="stat-card__value" id="stat-current">--</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-card__label">累计变化</p>
+        <p class="stat-card__value" id="stat-change">--</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-card__label">BMI</p>
+        <p class="stat-card__value" id="stat-bmi">--</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-card__label">距目标</p>
+        <p class="stat-card__value" id="stat-target">--</p>
+      </article>
+    </section>
+
+    <section class="panel" aria-labelledby="checkin-title">
+      <h2 class="panel__title" id="checkin-title">今日打卡</h2>
+      <form class="form" id="checkin-form">
+        <label class="form__field">
+          日期
+          <input type="date" id="input-date" required>
+        </label>
+        <label class="form__field">
+          体重 (kg)
+          <input type="number" id="input-weight" step="0.1" min="20" max="500" placeholder="如 65.5" required>
+        </label>
+        <label class="form__field form__field--full">
+          备注
+          <input type="text" id="input-note" maxlength="200" placeholder="今天吃了什么 / 运动了吗（可选）">
+        </label>
+        <button class="form__submit" type="submit">打卡</button>
+      </form>
+      <p class="form__message" id="form-message" role="status"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="chart-title">
+      <h2 class="panel__title" id="chart-title">体重趋势</h2>
+      <canvas class="chart" id="trend-chart"></canvas>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <h2 class="panel__title" id="history-title">历史记录</h2>
+      <table class="records">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>体重 (kg)</th>
+            <th>备注</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="records-body"></tbody>
+      </table>
+      <p class="records__empty" id="records-empty" hidden>还没有记录，快去打第一卡吧！</p>
+    </section>
+
+    <section class="panel" aria-labelledby="settings-title">
+      <h2 class="panel__title" id="settings-title">个人设置</h2>
+      <form class="form" id="settings-form">
+        <label class="form__field">
+          身高 (cm)
+          <input type="number" id="input-height" step="0.1" min="50" max="300" placeholder="如 170">
+        </label>
+        <label class="form__field">
+          目标体重 (kg)
+          <input type="number" id="input-target" step="0.1" min="20" max="500" placeholder="如 55">
+        </label>
+        <button class="form__submit form__submit--secondary" type="submit">保存设置</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>数据保存在本地服务器 data.json</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
