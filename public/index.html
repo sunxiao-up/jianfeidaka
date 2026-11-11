@@ -8,37 +8,11 @@
 </head>
 <body>
   <header class="header">
-    <div class="header__user" id="header-user" hidden>
-      <span id="header-username"></span>
-      <button type="button" class="header__logout" id="btn-logout">退出登录</button>
-    </div>
     <h1 class="header__title">减肥打卡</h1>
     <p class="header__subtitle">坚持记录，遇见更好的自己</p>
   </header>
 
-  <div class="auth" id="auth-view" hidden>
-    <section class="panel">
-      <h2 class="panel__title" id="auth-title">登录</h2>
-      <form class="form" id="auth-form">
-        <label class="form__field form__field--full">
-          用户名
-          <input type="text" id="input-username" minlength="2" maxlength="20" autocomplete="username" required>
-        </label>
-        <label class="form__field form__field--full">
-          密码
-          <input type="password" id="input-password" minlength="6" autocomplete="current-password" required>
-        </label>
-        <button class="form__submit form__submit--full" type="submit" id="auth-submit">登录</button>
-      </form>
-      <p class="form__message" id="auth-message" role="status"></p>
-      <p class="auth__switch">
-        <span id="auth-switch-text">还没有账号？</span>
-        <button type="button" class="auth__switch-btn" id="auth-switch-btn">去注册</button>
-      </p>
-    </section>
-  </div>
-
-  <main class="main" id="app-view" hidden>
+  <main class="main">
     <section class="stats" aria-label="数据统计">
       <article class="stat-card">
         <p class="stat-card__label">当前体重</p>
