@@ -1,13 +1,19 @@
 const state = {
+  user: null,
   records: [],
   profile: { height: null, targetWeight: null },
 };
+
+let authMode = 'login';
 
 // ---------- 工具函数 ----------
 
 const api = async (path, options) => {
   const res = await fetch(path, options);
   const data = await res.json();
+  if (res.status === 401 && path !== '/api/me') {
+    showAuth();
+  }
   if (!res.ok) throw new Error(data.error || '请求失败');
   return data;
 };
@@ -20,6 +26,70 @@ const getToday = () => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${month}-${day}`;
 };
+
+// ---------- 登录 / 注册 ----------
+
+const showAuth = () => {
+  document.querySelector('#auth-view').hidden = false;
+  document.querySelector('#app-view').hidden = true;
+  document.querySelector('#header-user').hidden = true;
+  state.user = null;
+};
+
+const showApp = (username) => {
+  state.user = username;
+  document.querySelector('#auth-view').hidden = true;
+  document.querySelector('#app-view').hidden = false;
+  document.querySelector('#header-user').hidden = false;
+  document.querySelector('#header-username').textContent = username;
+};
+
+const setAuthMode = (mode) => {
+  authMode = mode;
+  const isLogin = mode === 'login';
+  document.querySelector('#auth-title').textContent = isLogin ? '登录' : '注册';
+  document.querySelector('#auth-submit').textContent = isLogin ? '登录' : '注册';
+  document.querySelector('#auth-switch-text').textContent = isLogin ? '还没有账号？' : '已有账号？';
+  document.querySelector('#auth-switch-btn').textContent = isLogin ? '去注册' : '去登录';
+  document.querySelector('#input-password').autocomplete = isLogin ? 'current-password' : 'new-password';
+  showAuthMessage('');
+};
+
+const showAuthMessage = (text, ok) => {
+  const el = document.querySelector('#auth-message');
+  el.textContent = text;
+  el.classList.toggle('form__message--ok', !!ok);
+};
+
+document.querySelector('#auth-switch-btn').addEventListener('click', () => {
+  setAuthMode(authMode === 'login' ? 'register' : 'login');
+});
+
+document.querySelector('#auth-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.querySelector('#input-username').value.trim();
+  const password = document.querySelector('#input-password').value;
+  try {
+    const data = await api(`/api/${authMode}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    document.querySelector('#input-password').value = '';
+    showApp(data.username);
+    await loadAll();
+  } catch (err) {
+    showAuthMessage(err.message, false);
+  }
+});
+
+document.querySelector('#btn-logout').addEventListener('click', async () => {
+  try {
+    await api('/api/logout', { method: 'POST' });
+  } finally {
+    showAuth();
+  }
+});
 
 // ---------- 渲染 ----------
 
@@ -271,4 +341,12 @@ window.addEventListener('resize', renderChart);
 // ---------- 初始化 ----------
 
 document.querySelector('#input-date').value = getToday();
-loadAll();
+(async () => {
+  try {
+    const me = await api('/api/me');
+    showApp(me.username);
+    await loadAll();
+  } catch {
+    showAuth();
+  }
+})();
