@@ -9,16 +9,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,11 +30,6 @@ public final class WeightTrackerServer {
 
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
     private static final Pattern DELETE_PATTERN = Pattern.compile("^/api/records/([\\w-]+)$");
-    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[\\w\\u4e00-\\u9fa5-]{2,20}$");
-
-    // 会话保存在内存中，重启服务后需要重新登录
-    private static final Map<String, String> SESSIONS = new ConcurrentHashMap<>();
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private static final Map<String, String> MIME = new HashMap<>();
 
@@ -90,97 +81,9 @@ public final class WeightTrackerServer {
         Map<String, Object> data = loadData();
         String method = ex.getRequestMethod();
 
-        // POST /api/register
-        if ("POST".equals(method) && "/api/register".equals(path)) {
-            Map<String, Object> body = readObject(ex);
-            String username = body.get("username") == null ? "" : String.valueOf(body.get("username")).trim();
-            String password = body.get("password") == null ? "" : String.valueOf(body.get("password"));
-
-            if (!USERNAME_PATTERN.matcher(username).matches()) {
-                sendJson(ex, 400, mapOf("error", "用户名需为 2~20 位字母、数字、中文、- 或 _"));
-                return;
-            }
-            if (password.length() < 6) {
-                sendJson(ex, 400, mapOf("error", "密码至少 6 位"));
-                return;
-            }
-
-            List<Object> users = usersOf(data);
-            if (findUser(users, username) != null) {
-                sendJson(ex, 409, mapOf("error", "用户名已存在"));
-                return;
-            }
-
-            String salt = randomHex(16);
-            Map<String, Object> user = new LinkedHashMap<>();
-            user.put("username", username);
-            user.put("salt", salt);
-            user.put("passwordHash", hashPassword(salt, password));
-            // 迁移旧版未登录时代的单用户数据到首个注册用户
-            Object legacyProfile = data.remove("profile");
-            Object legacyRecords = data.remove("records");
-            user.put("profile", legacyProfile != null ? legacyProfile : new LinkedHashMap<String, Object>());
-            user.put("records", legacyRecords != null ? legacyRecords : new ArrayList<Object>());
-            users.add(user);
-            saveData(data);
-
-            setSession(ex, username);
-            sendJson(ex, 200, mapOf("username", username));
-            return;
-        }
-
-        // POST /api/login
-        if ("POST".equals(method) && "/api/login".equals(path)) {
-            Map<String, Object> body = readObject(ex);
-            String username = body.get("username") == null ? "" : String.valueOf(body.get("username")).trim();
-            String password = body.get("password") == null ? "" : String.valueOf(body.get("password"));
-
-            Map<String, Object> user = findUser(usersOf(data), username);
-            if (user == null
-                    || !hashPassword(String.valueOf(user.get("salt")), password)
-                            .equals(String.valueOf(user.get("passwordHash")))) {
-                sendJson(ex, 401, mapOf("error", "用户名或密码错误"));
-                return;
-            }
-            setSession(ex, username);
-            sendJson(ex, 200, mapOf("username", username));
-            return;
-        }
-
-        // POST /api/logout
-        if ("POST".equals(method) && "/api/logout".equals(path)) {
-            clearSession(ex);
-            sendJson(ex, 200, mapOf("ok", true));
-            return;
-        }
-
-        // GET /api/me
-        if ("GET".equals(method) && "/api/me".equals(path)) {
-            String username = currentUser(ex);
-            if (username == null) {
-                sendJson(ex, 401, mapOf("error", "未登录"));
-            } else {
-                sendJson(ex, 200, mapOf("username", username));
-            }
-            return;
-        }
-
-        // 以下接口均需登录
-        String username = currentUser(ex);
-        if (username == null) {
-            sendJson(ex, 401, mapOf("error", "未登录"));
-            return;
-        }
-        Map<String, Object> user = findUser(usersOf(data), username);
-        if (user == null) {
-            clearSession(ex);
-            sendJson(ex, 401, mapOf("error", "账号不存在，请重新登录"));
-            return;
-        }
-
         // GET /api/records
         if ("GET".equals(method) && "/api/records".equals(path)) {
-            List<Object> records = (List<Object>) user.get("records");
+            List<Object> records = (List<Object>) data.get("records");
             List<Map<String, Object>> sorted = new ArrayList<>();
             for (Object r : records) {
                 sorted.add((Map<String, Object>) r);
@@ -207,7 +110,7 @@ public final class WeightTrackerServer {
                 return;
             }
 
-            List<Object> records = (List<Object>) user.get("records");
+            List<Object> records = (List<Object>) data.get("records");
             Map<String, Object> existing = null;
             for (Object r : records) {
                 Map<String, Object> m = (Map<String, Object>) r;
@@ -237,7 +140,7 @@ public final class WeightTrackerServer {
         Matcher dm = DELETE_PATTERN.matcher(path);
         if ("DELETE".equals(method) && dm.matches()) {
             String id = dm.group(1);
-            List<Object> records = (List<Object>) user.get("records");
+            List<Object> records = (List<Object>) data.get("records");
             boolean removed = records.removeIf(r ->
                     id.equals(String.valueOf(((Map<String, Object>) r).get("id"))));
             if (!removed) {
@@ -251,7 +154,7 @@ public final class WeightTrackerServer {
 
         // GET /api/profile
         if ("GET".equals(method) && "/api/profile".equals(path)) {
-            sendJson(ex, 200, user.get("profile"));
+            sendJson(ex, 200, data.get("profile"));
             return;
         }
 
@@ -273,92 +176,13 @@ public final class WeightTrackerServer {
             Map<String, Object> profile = new LinkedHashMap<>();
             profile.put("height", height);
             profile.put("targetWeight", target);
-            user.put("profile", profile);
+            data.put("profile", profile);
             saveData(data);
             sendJson(ex, 200, mapOf("ok", true));
             return;
         }
 
         sendJson(ex, 404, mapOf("error", "接口不存在"));
-    }
-
-    // ---------- 登录态与用户 ----------
-
-    @SuppressWarnings("unchecked")
-    private static List<Object> usersOf(Map<String, Object> data) {
-        Object users = data.get("users");
-        if (users instanceof List) {
-            return (List<Object>) users;
-        }
-        List<Object> list = new ArrayList<>();
-        data.put("users", list);
-        return list;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> findUser(List<Object> users, String username) {
-        for (Object u : users) {
-            Map<String, Object> m = (Map<String, Object>) u;
-            if (username.equals(String.valueOf(m.get("username")))) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    private static String currentUser(HttpExchange ex) {
-        String cookie = ex.getRequestHeaders().getFirst("Cookie");
-        if (cookie == null) return null;
-        for (String part : cookie.split(";")) {
-            String[] kv = part.trim().split("=", 2);
-            if (kv.length == 2 && "sid".equals(kv[0])) {
-                return SESSIONS.get(kv[1]);
-            }
-        }
-        return null;
-    }
-
-    private static void setSession(HttpExchange ex, String username) {
-        String token = randomHex(32);
-        SESSIONS.put(token, username);
-        ex.getResponseHeaders().add("Set-Cookie", "sid=" + token + "; Path=/; HttpOnly; SameSite=Lax");
-    }
-
-    private static void clearSession(HttpExchange ex) {
-        String cookie = ex.getRequestHeaders().getFirst("Cookie");
-        if (cookie != null) {
-            for (String part : cookie.split(";")) {
-                String[] kv = part.trim().split("=", 2);
-                if (kv.length == 2 && "sid".equals(kv[0])) {
-                    SESSIONS.remove(kv[1]);
-                }
-            }
-        }
-        ex.getResponseHeaders().add("Set-Cookie", "sid=; Path=/; HttpOnly; Max-Age=0");
-    }
-
-    private static String randomHex(int bytes) {
-        byte[] buf = new byte[bytes];
-        RANDOM.nextBytes(buf);
-        StringBuilder sb = new StringBuilder();
-        for (byte b : buf) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
-
-    private static String hashPassword(String salt, String password) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest((salt + ":" + password).getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     // ---------- 静态文件 ----------
@@ -403,7 +227,8 @@ public final class WeightTrackerServer {
             }
         }
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("users", new ArrayList<Object>());
+        data.put("profile", new LinkedHashMap<String, Object>());
+        data.put("records", new ArrayList<Object>());
         return data;
     }
 
