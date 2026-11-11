@@ -1,14 +1,34 @@
 {
-  "profile": {
-    "height": 170,
-    "targetWeight": 65
-  },
-  "records": [
+  "users": [
     {
-      "id": "ef808f27ccb2",
-      "date": "2026-11-10",
-      "weight": 70,
-      "note": "今天吃饭"
+      "username": "sunxiao",
+      "salt": "d0bbafdfdad696217f82c6f45e9bd43d",
+      "passwordHash": "f9ba0f32adc45da71f5ce6b5e2d874fba645b27a5eba937b4c4ba885ed1297f0",
+      "profile": {
+        "height": 170,
+        "targetWeight": 65
+      },
+      "records": [
+        {
+          "id": "ef808f27ccb2",
+          "date": "2026-11-10",
+          "weight": 70,
+          "note": "今天吃饭"
+        },
+        {
+          "id": "67afdb5a26a6",
+          "date": "2026-11-11",
+          "weight": 64.5,
+          "note": "卷饼，香蕉，鸡腿，圣女果"
+        }
+      ]
+    },
+    {
+      "username": "何奥星",
+      "salt": "fbe1cf210c17657c9f31fe440b15dca9",
+      "passwordHash": "af0997d5bf2a46f4bed2701effb4a25fc338ba5304331e405c1c9c71639207c9",
+      "profile": {},
+      "records": []
     }
   ]
 }

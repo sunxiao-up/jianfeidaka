@@ -28,10 +28,62 @@ body {
 
 /* 头部 */
 .header {
+  position: relative;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   color: #ffffff;
   padding: 32px 16px;
   text-align: center;
+}
+
+.header__user {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.header__logout {
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.header__logout:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 登录 / 注册 */
+.auth {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.auth__switch {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.auth__switch-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.auth__switch-btn:hover {
+  text-decoration: underline;
 }
 
 .header__title {
@@ -153,6 +205,10 @@ body {
 
 .form__submit--secondary {
   background-color: var(--color-text);
+}
+
+.form__submit--full {
+  grid-column: 1 / -1;
 }
 
 .form__message {
